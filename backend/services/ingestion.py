@@ -8,6 +8,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from backend.config import Settings
 from backend.api.deps import get_vectorstore
+from backend.services.metrics import metrics
 
 
 def _safe_filename(name: str) -> str:
@@ -67,4 +68,6 @@ def ingest_bytes(
     if chunks:
         vectorstore.add_documents(chunks, ids=ids)
 
-    return doc_id, len(chunks), str(dest)
+    n_chunks = len(chunks)
+    metrics.record_ingestion(n_chunks)
+    return doc_id, n_chunks, str(dest)

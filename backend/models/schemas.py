@@ -37,3 +37,14 @@ class DocumentListItem(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     openai_configured: bool
+
+
+class MetricsResponse(BaseModel):
+    queries_total: int
+    ingestions_total: int
+    chunks_added_total: int
+    retrieval_returned_total: int
+    retrieval_kept_total: int
+    latency_samples: int
+    query_latency_p50_ms: float | None = None
+    query_latency_p95_ms: float | None = None

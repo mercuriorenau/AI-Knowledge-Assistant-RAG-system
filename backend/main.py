@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api.routes import documents, health, query
+from backend.api.routes import documents, health, metrics, query
 from backend.config import get_settings
 
 
@@ -31,5 +31,6 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(metrics.router)
 app.include_router(documents.router)
 app.include_router(query.router)
