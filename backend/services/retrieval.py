@@ -3,6 +3,7 @@ from langchain_core.documents import Document
 from backend.config import Settings
 from backend.api.deps import get_vectorstore
 from backend.models.schemas import SourceItem
+from backend.services.metrics import metrics
 
 
 def retrieve_chunks(
@@ -21,6 +22,7 @@ def retrieve_chunks(
     pairs = [(d, 1.0 / (1.0 + abs(float(dist)))) for d, dist in raw]
 
     filtered = [(d, s) for d, s in pairs if s >= settings.min_relevance_score]
+    metrics.record_retrieval(returned=len(pairs), kept=len(filtered))
 
     blocks = []
     for doc, _score in filtered:

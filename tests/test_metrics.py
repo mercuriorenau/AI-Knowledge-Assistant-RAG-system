@@ -38,3 +38,18 @@ def test_metrics_endpoint_after_ingest(fake_vectorstore, isolated_settings):
     body = r.json()
     assert body["ingestions_total"] == 1
     assert body["chunks_added_total"] >= 1
+
+
+def test_retrieval_counters_survive_relevance_floor(fake_vectorstore, isolated_settings, monkeypatch):
+    metrics.reset()
+    monkeypatch.setenv("MIN_RELEVANCE_SCORE", "0.99")
+    from backend.config import get_settings
+    from backend.services.ingestion import ingest_bytes
+    from backend.services.retrieval import retrieve_chunks
+
+    settings = get_settings()
+    ingest_bytes(b"Acme founded in 1999 in Austin Texas.", "acme.txt", settings)
+    retrieve_chunks("When was Acme founded?", settings, k=4)
+    snap = metrics.snapshot()
+    assert snap["retrieval_returned_total"] >= 1
+    assert snap["retrieval_kept_total"] <= snap["retrieval_returned_total"]
