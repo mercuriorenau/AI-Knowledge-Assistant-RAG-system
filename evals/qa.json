@@ -1,0 +1,26 @@
+[
+  {
+    "id": "q_acme_founded",
+    "question": "When was Acme Robotics founded and where?",
+    "relevant_sources": ["acme.txt"],
+    "must_include": ["1999"]
+  },
+  {
+    "id": "q_northwind_skus",
+    "question": "How many SKUs does the Spring 2024 Northwind inventory report list?",
+    "relevant_sources": ["northwind.txt"],
+    "must_include": ["1240", "1,240"]
+  },
+  {
+    "id": "q_helios_site",
+    "question": "Which site does Project Helios forecast irradiance for?",
+    "relevant_sources": ["helios.txt"],
+    "must_include": ["HX-17"]
+  },
+  {
+    "id": "q_helios_cadence",
+    "question": "How often does the Helios model refresh?",
+    "relevant_sources": ["helios.txt"],
+    "must_include": ["six hours", "6 hours"]
+  }
+]

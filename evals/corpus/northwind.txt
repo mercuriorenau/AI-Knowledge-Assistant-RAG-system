@@ -1,0 +1,3 @@
+Northwind Trading publishes a quarterly inventory report.
+The Spring 2024 report lists 1,240 SKUs in active stock.
+Warehouse B in Seattle holds the cold-storage goods.

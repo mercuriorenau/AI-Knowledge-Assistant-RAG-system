@@ -1,0 +1,3 @@
+Project Helios is an internal solar-forecasting toolkit.
+Helios predicts next-day irradiance for site HX-17.
+The model refresh cadence is every six hours.
