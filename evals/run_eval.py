@@ -18,12 +18,26 @@ from langchain_community.vectorstores import Chroma
 from backend.api.deps import clear_vectorstore_cache
 from backend.config import Settings
 from backend.services.eval_quality import mean, precision_at_k, recall_at_k
+from backend.services.faithfulness import is_faithful
 from backend.services.ingestion import ingest_bytes
 from backend.services.retrieval import retrieve_chunks
 
 EVAL_K = 4
 CORPUS_DIR = Path(__file__).parent / "corpus"
 QA_PATH = Path(__file__).parent / "qa.json"
+EMPTY_REFUSAL = (
+    "I don't know. No relevant information found in the indexed documents. "
+    "Upload documents or lower MIN_RELEVANCE_SCORE if needed."
+)
+
+
+def _candidate_answer(context: str, must_include: list[str]) -> str:
+    """Build a grounded-looking answer from retrieved context for offline checks."""
+    for phrase in must_include:
+        if phrase and phrase.lower() in context.lower():
+            return f"According to the documents, {phrase}."
+    snippet = " ".join(context.split())[:180]
+    return f"According to the documents, {snippet}"
 
 
 def _run(write_results: bool = False) -> dict:
@@ -64,8 +78,14 @@ def _run(write_results: bool = False) -> dict:
         per_case = []
         p_scores: list[float] = []
         r_scores: list[float] = []
+        faith_flags: list[bool] = []
+
+        # Empty-context refusal must stay faithful.
+        empty_ok = is_faithful(EMPTY_REFUSAL, "", context_empty=True)
+        faith_flags.append(empty_ok)
+
         for case in cases:
-            pairs, _context = retrieve_chunks(case["question"], settings, k=EVAL_K)
+            pairs, context = retrieve_chunks(case["question"], settings, k=EVAL_K)
             retrieved_sources: list[str] = []
             for doc, _score in pairs:
                 src = str(doc.metadata.get("source", "unknown"))
@@ -76,6 +96,22 @@ def _run(write_results: bool = False) -> dict:
             r = recall_at_k(retrieved_sources, relevant, EVAL_K)
             p_scores.append(p)
             r_scores.append(r)
+
+            context_empty = not context.strip()
+            answer = (
+                EMPTY_REFUSAL
+                if context_empty
+                else _candidate_answer(context, case.get("must_include") or [])
+            )
+            faithful = is_faithful(answer, context, context_empty=context_empty)
+            negative_ok = True
+            if not context_empty:
+                negative_ok = not is_faithful(
+                    "Zephyr-quark photosynthesis yields violet plasma.",
+                    context,
+                    context_empty=False,
+                )
+            faith_flags.append(faithful and negative_ok)
             per_case.append(
                 {
                     "id": case["id"],
@@ -84,15 +120,21 @@ def _run(write_results: bool = False) -> dict:
                     "retrieved_sources": retrieved_sources,
                     "precision_at_k": round(p, 4),
                     "recall_at_k": round(r, 4),
+                    "context_empty": context_empty,
+                    "faithful": faithful,
                 }
             )
 
+        faith_rate = mean([1.0 if f else 0.0 for f in faith_flags])
         summary = {
             "embedding": "FakeEmbeddings(size=135)",
             "k": EVAL_K,
             "n_questions": len(cases),
             "mean_precision_at_k": round(mean(p_scores), 4),
             "mean_recall_at_k": round(mean(r_scores), 4),
+            "faithfulness_checks": len(faith_flags),
+            "faithfulness_pass_rate": round(faith_rate, 4),
+            "empty_context_refusal_ok": empty_ok,
             "cases": per_case,
             "command": "python evals/run_eval.py",
         }
@@ -111,6 +153,8 @@ def _run(write_results: bool = False) -> dict:
             f"- Questions = {summary['n_questions']}",
             f"- Mean precision@{summary['k']} = **{summary['mean_precision_at_k']}**",
             f"- Mean recall@{summary['k']} = **{summary['mean_recall_at_k']}**",
+            f"- Faithfulness pass rate = **{summary['faithfulness_pass_rate']}** "
+            f"({summary['faithfulness_checks']} checks, including empty-context refusal)",
             "",
             "## Per question",
             "",
@@ -118,7 +162,7 @@ def _run(write_results: bool = False) -> dict:
         for c in per_case:
             lines.append(
                 f"- `{c['id']}`: P@{EVAL_K}={c['precision_at_k']}, "
-                f"R@{EVAL_K}={c['recall_at_k']}; "
+                f"R@{EVAL_K}={c['recall_at_k']}, faithful={c['faithful']}; "
                 f"retrieved={c['retrieved_sources']}"
             )
         lines.append("")
