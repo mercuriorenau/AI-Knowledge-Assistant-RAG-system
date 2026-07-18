@@ -94,6 +94,7 @@ Volumes persist Chroma data and uploaded files under `chroma_data` and `uploads`
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/health` | Liveness + whether `OPENAI_API_KEY` is set |
+| `GET` | `/metrics` | In-process query latency percentiles and ingest/retrieval counters |
 | `POST` | `/documents` | Multipart file upload (`.pdf`, `.txt`, `.md`) |
 | `GET` | `/documents` | List uploaded files (derived from stored filenames) |
 | `POST` | `/query` | JSON `{"question": "...", "k": 8}` → answer + sources |
@@ -111,6 +112,20 @@ pytest tests/ -v
 ```
 
 Uses `FakeEmbeddings` + temporary Chroma directories and mocks the chat model where needed — **no live OpenAI calls**.
+
+## Metrics and evals
+
+Runtime metrics (process-local, reset on restart):
+
+- `GET /metrics` exposes query counts, ingestion chunk totals, retrieval returned vs kept after `MIN_RELEVANCE_SCORE`, and query latency p50/p95 once at least two samples exist.
+
+Offline fixture eval (no live OpenAI):
+
+```bash
+python evals/run_eval.py
+```
+
+This ingests [`evals/corpus/`](evals/corpus/), scores labeled questions in [`evals/qa.json`](evals/qa.json) for precision@k / recall@k, runs a token-overlap faithfulness check, and writes [`evals/RESULTS.md`](evals/RESULTS.md). Numbers there are from the FakeEmbeddings harness, not a production embedding model.
 
 ## Screenshots
 
@@ -140,4 +155,6 @@ Uses `FakeEmbeddings` + temporary Chroma directories and mocks the chat model wh
 - [backend/services/ingestion.py](backend/services/ingestion.py) — load, split, embed, upsert  
 - [backend/services/retrieval.py](backend/services/retrieval.py) — similarity search + context assembly  
 - [backend/services/rag.py](backend/services/rag.py) — grounded prompt + chat completion  
+- [backend/services/metrics.py](backend/services/metrics.py) — in-process latency and counter store  
+- [evals/run_eval.py](evals/run_eval.py) — offline precision@k / recall@k / faithfulness harness  
 - [frontend/app.py](frontend/app.py) — Streamlit UI  

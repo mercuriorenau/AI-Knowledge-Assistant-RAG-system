@@ -1,0 +1,77 @@
+{
+  "embedding": "FakeEmbeddings(size=135)",
+  "k": 4,
+  "n_questions": 4,
+  "mean_precision_at_k": 0.3333,
+  "mean_recall_at_k": 1.0,
+  "faithfulness_checks": 5,
+  "faithfulness_pass_rate": 1.0,
+  "empty_context_refusal_ok": true,
+  "cases": [
+    {
+      "id": "q_acme_founded",
+      "question": "When was Acme Robotics founded and where?",
+      "relevant_sources": [
+        "acme.txt"
+      ],
+      "retrieved_sources": [
+        "helios.txt",
+        "acme.txt",
+        "northwind.txt"
+      ],
+      "precision_at_k": 0.3333,
+      "recall_at_k": 1.0,
+      "context_empty": false,
+      "faithful": true
+    },
+    {
+      "id": "q_northwind_skus",
+      "question": "How many SKUs does the Spring 2024 Northwind inventory report list?",
+      "relevant_sources": [
+        "northwind.txt"
+      ],
+      "retrieved_sources": [
+        "helios.txt",
+        "acme.txt",
+        "northwind.txt"
+      ],
+      "precision_at_k": 0.3333,
+      "recall_at_k": 1.0,
+      "context_empty": false,
+      "faithful": true
+    },
+    {
+      "id": "q_helios_site",
+      "question": "Which site does Project Helios forecast irradiance for?",
+      "relevant_sources": [
+        "helios.txt"
+      ],
+      "retrieved_sources": [
+        "northwind.txt",
+        "acme.txt",
+        "helios.txt"
+      ],
+      "precision_at_k": 0.3333,
+      "recall_at_k": 1.0,
+      "context_empty": false,
+      "faithful": true
+    },
+    {
+      "id": "q_helios_cadence",
+      "question": "How often does the Helios model refresh?",
+      "relevant_sources": [
+        "helios.txt"
+      ],
+      "retrieved_sources": [
+        "helios.txt",
+        "northwind.txt",
+        "acme.txt"
+      ],
+      "precision_at_k": 0.3333,
+      "recall_at_k": 1.0,
+      "context_empty": false,
+      "faithful": true
+    }
+  ],
+  "command": "python evals/run_eval.py"
+}
